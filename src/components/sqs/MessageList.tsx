@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { Wand2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -40,6 +43,27 @@ export function MessageList() {
   
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newMessageBody, setNewMessageBody] = useState("");
+  const [messageMode, setMessageMode] = useState<"text" | "json">("text");
+
+  const jsonError = useMemo(() => {
+    if (messageMode !== "json" || !newMessageBody) return null;
+    try {
+      JSON.parse(newMessageBody);
+      return null;
+    } catch (err: any) {
+      return err.message;
+    }
+  }, [messageMode, newMessageBody]);
+
+  const handleBeautifyJson = () => {
+    try {
+      const json = JSON.parse(newMessageBody);
+      setNewMessageBody(JSON.stringify(json, null, 2));
+      toast.success("JSON beautified");
+    } catch (err) {
+      toast.error("Invalid JSON format");
+    }
+  };
 
   const fetchMessages = async () => {
     if (!queueUrl) return;
@@ -137,13 +161,64 @@ export function MessageList() {
               <DialogTitle>Send Message</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <textarea
-                className="w-full min-h-[150px] p-2 border rounded-md"
-                placeholder="Enter message body (JSON or Text)"
-                value={newMessageBody}
-                onChange={(e) => setNewMessageBody(e.target.value)}
-              />
-              <Button onClick={handleSendMessage} className="w-full">Send</Button>
+              <div className="flex justify-between items-center">
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setMessageMode("text")}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium rounded-md transition-all",
+                      messageMode === "text"
+                        ? "bg-white shadow-sm text-gray-900"
+                        : "text-gray-500 hover:text-gray-700"
+                    )}
+                  >
+                    Text
+                  </button>
+                  <button
+                    onClick={() => setMessageMode("json")}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium rounded-md transition-all",
+                      messageMode === "json"
+                        ? "bg-white shadow-sm text-gray-900"
+                        : "text-gray-500 hover:text-gray-700"
+                    )}
+                  >
+                    JSON
+                  </button>
+                </div>
+                {messageMode === "json" && (
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={handleBeautifyJson}
+                    className="h-7 text-xs"
+                    disabled={!newMessageBody}
+                  >
+                    <Wand2 className="h-3 w-3 mr-1" />
+                    Beautify
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Textarea
+                  className={cn(
+                    "min-h-[150px] font-mono text-xs",
+                    jsonError && "border-destructive focus-visible:ring-destructive/20"
+                  )}
+                  placeholder={messageMode === "json" ? '{ "key": "value" }' : "Enter message body..."}
+                  value={newMessageBody}
+                  onChange={(e) => setNewMessageBody(e.target.value)}
+                  aria-invalid={!!jsonError}
+                />
+                {jsonError && (
+                  <p className="text-[10px] text-destructive font-medium">
+                    Invalid JSON: {jsonError}
+                  </p>
+                )}
+              </div>
+              <Button onClick={handleSendMessage} className="w-full" disabled={!!jsonError}>
+                Send
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
