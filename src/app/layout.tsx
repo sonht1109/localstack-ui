@@ -3,7 +3,12 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import { Agentation } from "agentation";
+import dynamic from "next/dynamic";
+
+const Agentation =
+  process.env.NODE_ENV === "development"
+    ? dynamic(() => import("agentation").then((m) => ({ default: m.Agentation })))
+    : () => null;
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,7 +30,7 @@ export default function RootLayout({
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
         <Toaster />
-        {process.env.NODE_ENV === "development" && <Agentation />}
+        <Agentation />
       </body>
     </html>
   );
