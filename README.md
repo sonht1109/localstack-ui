@@ -2,6 +2,8 @@
 
 A web UI for managing your local [LocalStack](https://localstack.cloud/) resources. 
 
+![LocalStack UI](assets/image.png)
+
 Right now, it supports interacting with **S3** and **SQS** straight from your browser.
 
 ## Features
