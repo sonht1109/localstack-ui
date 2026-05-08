@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LocalStack UI
+
+A web UI for managing your local [LocalStack](https://localstack.cloud/) resources. 
+
+Right now, it supports interacting with **S3** and **SQS** straight from your browser.
+
+## Features
+
+- **S3**: List, create, and delete buckets. Browse, upload, download, and delete objects.
+- **SQS**: List, create, and delete queues. Send, view, and purge messages.
 
 ## Getting Started
 
-First, run the development server:
+Make sure you have a LocalStack instance running (usually on `localhost:4566`).
+
+### Running with Docker (Recommended)
+
+If you already have LocalStack running in Docker, you can easily spin up the UI alongside it:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker-compose up -d --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The UI will be available at [http://localhost:3007](http://localhost:3007).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Running Locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you prefer to run it outside of Docker:
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Then open [http://localhost:3000](http://localhost:3000) in your browser. It will automatically drop you into the S3 dashboard.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Configuration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+By default, the app assumes LocalStack is available at `http://localhost:4566`. If you need to point it somewhere else, just update your environment variables. 
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Since it's connecting to LocalStack, dummy AWS credentials (like `test`/`test`) are perfectly fine.
