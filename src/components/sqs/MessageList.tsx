@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import { ReceiveMessageCommand, SendMessageCommand, PurgeQueueCommand } from "@aws-sdk/client-sqs";
+import { getSQSClient } from "@/lib/aws/client";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,16 +71,13 @@ export function MessageList() {
     if (!queueUrl) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/sqs/messages?queueUrl=${encodeURIComponent(queueUrl)}`, {
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (!res.ok) throw new Error("Failed to fetch messages");
-      const data = await res.json();
-      setMessages(data.messages);
+      const client = getSQSClient(url, region, accountId);
+      const data = await client.send(new ReceiveMessageCommand({ 
+        QueueUrl: queueUrl,
+        MaxNumberOfMessages: 10,
+        VisibilityTimeout: 10, 
+      }));
+      setMessages((data.Messages as SQSMessage[]) || []);
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -94,49 +93,27 @@ export function MessageList() {
   const handleSendMessage = async () => {
     if (!queueUrl || !newMessageBody) return;
     try {
-      const res = await fetch("/api/sqs/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-        body: JSON.stringify({ queueUrl, messageBody: newMessageBody }),
-      });
-      
-      if (res.ok) {
-        setIsAddOpen(false);
-        setNewMessageBody("");
-        fetchMessages();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to send message");
-      }
-    } catch (err) {
-      alert("Error sending message");
+      const client = getSQSClient(url, region, accountId);
+      await client.send(new SendMessageCommand({ 
+        QueueUrl: queueUrl,
+        MessageBody: newMessageBody
+      }));
+      setIsAddOpen(false);
+      setNewMessageBody("");
+      fetchMessages();
+    } catch (err: any) {
+      alert(err.message || "Error sending message");
     }
   };
 
   const handlePurgeQueue = async () => {
     if (!queueUrl || !confirm("Are you sure you want to purge all messages in this queue?")) return;
     try {
-      const res = await fetch(`/api/sqs/messages?queueUrl=${encodeURIComponent(queueUrl)}`, {
-        method: "DELETE",
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (res.ok) {
-        fetchMessages();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to purge queue");
-      }
-    } catch (err) {
-      alert("Error purging queue");
+      const client = getSQSClient(url, region, accountId);
+      await client.send(new PurgeQueueCommand({ QueueUrl: queueUrl }));
+      fetchMessages();
+    } catch (err: any) {
+      alert(err.message || "Error purging queue");
     }
   };
 

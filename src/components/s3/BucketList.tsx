@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ListBucketsCommand, CreateBucketCommand, DeleteBucketCommand } from "@aws-sdk/client-s3";
+import { getS3Client } from "@/lib/aws/client";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,16 +42,9 @@ export function BucketList() {
   const fetchBuckets = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/s3/buckets", {
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (!res.ok) throw new Error("Failed to fetch buckets");
-      const data = await res.json();
-      setBuckets(data.buckets);
+      const client = getS3Client(url, region, accountId);
+      const data = await client.send(new ListBucketsCommand({}));
+      setBuckets((data.Buckets as Bucket[]) || []);
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -65,48 +60,24 @@ export function BucketList() {
   const handleCreateBucket = async () => {
     if (!newBucketName) return;
     try {
-      const res = await fetch("/api/s3/buckets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-        body: JSON.stringify({ bucket: newBucketName }),
-      });
-      if (res.ok) {
-        setIsAddOpen(false);
-        setNewBucketName("");
-        fetchBuckets();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to create bucket");
-      }
-    } catch (err) {
-      alert("Error creating bucket");
+      const client = getS3Client(url, region, accountId);
+      await client.send(new CreateBucketCommand({ Bucket: newBucketName }));
+      setIsAddOpen(false);
+      setNewBucketName("");
+      fetchBuckets();
+    } catch (err: any) {
+      alert(err.message || "Error creating bucket");
     }
   };
 
   const handleDeleteBucket = async (bucketName: string) => {
     if (!confirm(`Delete bucket ${bucketName}?`)) return;
     try {
-      const res = await fetch(`/api/s3/buckets?bucket=${encodeURIComponent(bucketName)}`, {
-        method: "DELETE",
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (res.ok) {
-        fetchBuckets();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to delete bucket");
-      }
-    } catch (err) {
-      alert("Error deleting bucket");
+      const client = getS3Client(url, region, accountId);
+      await client.send(new DeleteBucketCommand({ Bucket: bucketName }));
+      fetchBuckets();
+    } catch (err: any) {
+      alert(err.message || "Error deleting bucket");
     }
   };
 

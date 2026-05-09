@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { ListQueuesCommand, CreateQueueCommand, DeleteQueueCommand } from "@aws-sdk/client-sqs";
+import { getSQSClient } from "@/lib/aws/client";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,16 +39,9 @@ export function QueueList() {
   const fetchQueues = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/sqs/queues", {
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (!res.ok) throw new Error("Failed to fetch queues");
-      const data = await res.json();
-      setQueues(data.queues);
+      const client = getSQSClient(url, region, accountId);
+      const data = await client.send(new ListQueuesCommand({}));
+      setQueues(data.QueueUrls || []);
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -62,48 +57,24 @@ export function QueueList() {
   const handleCreateQueue = async () => {
     if (!newQueueName) return;
     try {
-      const res = await fetch("/api/sqs/queues", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-        body: JSON.stringify({ queueName: newQueueName }),
-      });
-      if (res.ok) {
-        setIsAddOpen(false);
-        setNewQueueName("");
-        fetchQueues();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to create queue");
-      }
-    } catch (err) {
-      alert("Error creating queue");
+      const client = getSQSClient(url, region, accountId);
+      await client.send(new CreateQueueCommand({ QueueName: newQueueName }));
+      setIsAddOpen(false);
+      setNewQueueName("");
+      fetchQueues();
+    } catch (err: any) {
+      alert(err.message || "Error creating queue");
     }
   };
 
   const handleDeleteQueue = async (queueUrl: string) => {
     if (!confirm(`Delete queue?`)) return;
     try {
-      const res = await fetch(`/api/sqs/queues?queueUrl=${encodeURIComponent(queueUrl)}`, {
-        method: "DELETE",
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (res.ok) {
-        fetchQueues();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to delete queue");
-      }
-    } catch (err) {
-      alert("Error deleting queue");
+      const client = getSQSClient(url, region, accountId);
+      await client.send(new DeleteQueueCommand({ QueueUrl: queueUrl }));
+      fetchQueues();
+    } catch (err: any) {
+      alert(err.message || "Error deleting queue");
     }
   };
 
