@@ -5,10 +5,11 @@ import { getS3Client } from "@/lib/aws/client";
 export async function GET(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
   const bucket = request.nextUrl.searchParams.get('bucket');
   if (!bucket) return NextResponse.json({ error: 'Bucket required' }, { status: 400 });
 
-  const client = getS3Client(url, region);
+  const client = getS3Client(url, region, accountId);
 
   try {
     const data = await client.send(new ListObjectsV2Command({ Bucket: bucket }));
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
   
   try {
     const formData = await request.formData();
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Bucket and file required' }, { status: 400 });
     }
 
-    const client = getS3Client(url, region);
+    const client = getS3Client(url, region, accountId);
     const buffer = Buffer.from(await file.arrayBuffer());
     
     await client.send(new PutObjectCommand({
@@ -51,12 +53,13 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
   const bucket = request.nextUrl.searchParams.get('bucket');
   const key = request.nextUrl.searchParams.get('key');
   
   if (!bucket || !key) return NextResponse.json({ error: 'Bucket and key required' }, { status: 400 });
 
-  const client = getS3Client(url, region);
+  const client = getS3Client(url, region, accountId);
 
   try {
     await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));

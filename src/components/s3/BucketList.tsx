@@ -27,7 +27,7 @@ interface Bucket {
 }
 
 export function BucketList() {
-  const { getActiveInstance, region, userId } = useLocalStackStore();
+  const { getActiveInstance, region, accountId } = useLocalStackStore();
   const instance = getActiveInstance();
   const url = instance?.url || "http://localhost:4566";
 
@@ -45,7 +45,7 @@ export function BucketList() {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (!res.ok) throw new Error("Failed to fetch buckets");
@@ -61,7 +61,7 @@ export function BucketList() {
 
   useEffect(() => {
     fetchBuckets();
-  }, [url, region, userId]);
+  }, [url, region, accountId]);
 
   const handleCreateBucket = async () => {
     if (!newBucketName) return;
@@ -72,7 +72,7 @@ export function BucketList() {
           "Content-Type": "application/json",
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
         body: JSON.stringify({ bucket: newBucketName }),
       });
@@ -97,7 +97,7 @@ export function BucketList() {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (res.ok) {

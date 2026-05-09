@@ -5,10 +5,11 @@ import { getSQSClient } from "@/lib/aws/client";
 export async function GET(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
   const queueUrl = request.nextUrl.searchParams.get('queueUrl');
   if (!queueUrl) return NextResponse.json({ error: 'Queue URL required' }, { status: 400 });
 
-  const client = getSQSClient(url, region);
+  const client = getSQSClient(url, region, accountId);
 
   try {
     // Receive messages but don't delete them immediately, so they return to queue for true testing.
@@ -27,7 +28,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
-  const client = getSQSClient(url, region);
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
+  const client = getSQSClient(url, region, accountId);
 
   try {
     const body = await request.json();
@@ -51,10 +53,11 @@ export async function DELETE(request: NextRequest) {
   // We use DELETE on /api/sqs/messages to Purge the queue
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
   const queueUrl = request.nextUrl.searchParams.get('queueUrl');
   if (!queueUrl) return NextResponse.json({ error: 'Queue URL required' }, { status: 400 });
 
-  const client = getSQSClient(url, region);
+  const client = getSQSClient(url, region, accountId);
 
   try {
     await client.send(new PurgeQueueCommand({ QueueUrl: queueUrl }));

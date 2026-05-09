@@ -33,7 +33,7 @@ export function MessageList() {
   const searchParams = useSearchParams();
   const queueUrl = searchParams.get("url");
 
-  const { getActiveInstance, region, userId } = useLocalStackStore();
+  const { getActiveInstance, region, accountId } = useLocalStackStore();
   const instance = getActiveInstance();
   const url = instance?.url || "http://localhost:4566";
 
@@ -73,7 +73,7 @@ export function MessageList() {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (!res.ok) throw new Error("Failed to fetch messages");
@@ -89,7 +89,7 @@ export function MessageList() {
 
   useEffect(() => {
     fetchMessages();
-  }, [url, queueUrl, region, userId]);
+  }, [url, queueUrl, region, accountId]);
 
   const handleSendMessage = async () => {
     if (!queueUrl || !newMessageBody) return;
@@ -100,7 +100,7 @@ export function MessageList() {
           "Content-Type": "application/json",
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
         body: JSON.stringify({ queueUrl, messageBody: newMessageBody }),
       });
@@ -126,7 +126,7 @@ export function MessageList() {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (res.ok) {

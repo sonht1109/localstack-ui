@@ -11,14 +11,14 @@ interface LocalStackState {
   instances: LocalStackInstance[];
   activeInstanceId: string | null;
   region: string;
-  userId: string;
+  accountId: string;
   addInstance: (instance: Omit<LocalStackInstance, 'id'>) => void;
   removeInstance: (id: string) => void;
   updateInstance: (id: string, updates: Partial<Omit<LocalStackInstance, 'id'>>) => void;
   setActiveInstance: (id: string) => void;
   getActiveInstance: () => LocalStackInstance | undefined;
   setRegion: (region: string) => void;
-  setUserId: (userId: string) => void;
+  setAccountId: (accountId: string) => void;
 }
 
 const DEFAULT_INSTANCE: LocalStackInstance = {
@@ -33,7 +33,7 @@ export const useLocalStackStore = create<LocalStackState>()(
       instances: [DEFAULT_INSTANCE],
       activeInstanceId: 'default',
       region: 'ap-southeast-1',
-      userId: '000000000000',
+      accountId: '000000000000',
       addInstance: (instance) => {
         const id = Math.random().toString(36).substring(7);
         set((state) => ({
@@ -62,7 +62,7 @@ export const useLocalStackStore = create<LocalStackState>()(
         return instances.find((inst) => inst.id === activeInstanceId);
       },
       setRegion: (region) => set({ region }),
-      setUserId: (userId) => set({ userId }),
+      setAccountId: (accountId) => set({ accountId }),
     }),
     {
       name: 'localstack-ui-storage',

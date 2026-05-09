@@ -104,9 +104,9 @@ export function Sidebar() {
     removeInstance, 
     updateInstance,
     region,
-    userId,
+    accountId,
     setRegion,
-    setUserId
+    setAccountId
   } = useLocalStackStore();
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -250,11 +250,11 @@ export function Sidebar() {
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
-              User ID
+              Account ID
             </label>
             <Input 
-              value={userId} 
-              onChange={e => setUserId(e.target.value)} 
+              value={accountId} 
+              onChange={e => setAccountId(e.target.value)} 
               className="h-8 text-sm" 
               placeholder="000000000000"
             />

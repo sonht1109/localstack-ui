@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 
 export function QueueList() {
-  const { getActiveInstance, region, userId } = useLocalStackStore();
+  const { getActiveInstance, region, accountId } = useLocalStackStore();
   const instance = getActiveInstance();
   const url = instance?.url || "http://localhost:4566";
 
@@ -41,7 +41,7 @@ export function QueueList() {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (!res.ok) throw new Error("Failed to fetch queues");
@@ -57,7 +57,7 @@ export function QueueList() {
 
   useEffect(() => {
     fetchQueues();
-  }, [url, region, userId]);
+  }, [url, region, accountId]);
 
   const handleCreateQueue = async () => {
     if (!newQueueName) return;
@@ -68,7 +68,7 @@ export function QueueList() {
           "Content-Type": "application/json",
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
         body: JSON.stringify({ queueName: newQueueName }),
       });
@@ -93,7 +93,7 @@ export function QueueList() {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (res.ok) {

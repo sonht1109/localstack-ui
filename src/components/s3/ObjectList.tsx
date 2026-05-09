@@ -27,7 +27,7 @@ interface S3Object {
 }
 
 export function ObjectList({ bucket }: { bucket: string }) {
-  const { getActiveInstance, region, userId } = useLocalStackStore();
+  const { getActiveInstance, region, accountId } = useLocalStackStore();
   const instance = getActiveInstance();
   const url = instance?.url || "http://localhost:4566";
 
@@ -45,7 +45,7 @@ export function ObjectList({ bucket }: { bucket: string }) {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (!res.ok) throw new Error("Failed to fetch objects");
@@ -61,7 +61,7 @@ export function ObjectList({ bucket }: { bucket: string }) {
 
   useEffect(() => {
     fetchObjects();
-  }, [url, bucket, region, userId]);
+  }, [url, bucket, region, accountId]);
 
   const handleUpload = async () => {
     if (!fileInputRef.current?.files?.length) return;
@@ -78,7 +78,7 @@ export function ObjectList({ bucket }: { bucket: string }) {
         headers: {
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
         body: formData,
       });
@@ -101,7 +101,7 @@ export function ObjectList({ bucket }: { bucket: string }) {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (!res.ok) {
@@ -132,7 +132,7 @@ export function ObjectList({ bucket }: { bucket: string }) {
         headers: { 
           "x-localstack-url": url,
           "x-localstack-region": region,
-          "x-localstack-user-id": userId,
+          "x-localstack-account-id": accountId,
         },
       });
       if (res.ok) {

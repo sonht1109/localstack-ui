@@ -5,7 +5,8 @@ import { getSQSClient } from "@/lib/aws/client";
 export async function GET(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
-  const client = getSQSClient(url, region);
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
+  const client = getSQSClient(url, region, accountId);
 
   try {
     const data = await client.send(new ListQueuesCommand({}));
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
-  const client = getSQSClient(url, region);
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
+  const client = getSQSClient(url, region, accountId);
 
   try {
     const body = await request.json();
@@ -35,10 +37,11 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
+  const accountId = request.headers.get('x-localstack-account-id') || '000000000000';
   const queueUrl = request.nextUrl.searchParams.get('queueUrl');
   if (!queueUrl) return NextResponse.json({ error: 'Queue URL required' }, { status: 400 });
 
-  const client = getSQSClient(url, region);
+  const client = getSQSClient(url, region, accountId);
 
   try {
     // LocalStack might use localhost:4566 but the internal QueueUrl might differ slightly.
