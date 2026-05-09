@@ -199,10 +199,10 @@ export function ObjectList({ bucket }: { bucket: string }) {
                   {new Date(obj.LastModified).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" className="text-blue-500" onClick={() => handleDownloadObject(obj.Key)}>
+                  <Button variant="ghost" className="text-black" onClick={() => handleDownloadObject(obj.Key)}>
                     Download
                   </Button>
-                  <Button variant="ghost" className="text-red-500" onClick={() => handleDeleteObject(obj.Key)}>
+                  <Button variant="destructive" onClick={() => handleDeleteObject(obj.Key)}>
                     Delete
                   </Button>
                 </TableCell>

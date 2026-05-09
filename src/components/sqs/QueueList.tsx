@@ -168,13 +168,13 @@ export function QueueList() {
               const queueName = parts[parts.length - 1];
               return (
                 <TableRow key={qUrl}>
-                  <TableCell className="font-medium text-blue-600 hover:underline">
+                  <TableCell className="font-medium text-black hover:underline">
                     <Link href={`/sqs/${queueName}?url=${encodeURIComponent(qUrl)}`}>
                       {qUrl}
                     </Link>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" className="text-red-500" onClick={() => handleDeleteQueue(qUrl)}>
+                    <Button variant="destructive" onClick={() => handleDeleteQueue(qUrl)}>
                       Delete
                     </Button>
                   </TableCell>

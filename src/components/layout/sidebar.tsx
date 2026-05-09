@@ -50,7 +50,7 @@ function InstanceItem({ inst, instancesCount, onRemove, onUpdate }: { inst: Loca
 
   if (isEditing) {
     return (
-      <div className="flex flex-col gap-2 text-sm p-2 bg-gray-50 rounded border border-blue-200">
+      <div className="flex flex-col gap-2 text-sm p-2 bg-gray-50 rounded border border-gray-200">
         <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-7 text-xs" placeholder="Name" />
         <Input value={editUrl} onChange={e => setEditUrl(e.target.value)} className="h-7 text-xs" placeholder="URL" />
         <div className="flex justify-end gap-1">
@@ -72,7 +72,7 @@ function InstanceItem({ inst, instancesCount, onRemove, onUpdate }: { inst: Loca
         <span className="text-xs text-gray-500 truncate">{inst.url}</span>
       </div>
       <div className="flex shrink-0">
-        <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-500 hover:text-blue-700" onClick={() => setIsEditing(true)}>
+        <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-500 hover:text-black" onClick={() => setIsEditing(true)}>
           <Edit2 className="h-4 w-4" />
         </Button>
         {instancesCount > 1 && (
@@ -131,7 +131,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
       <div className="h-16 flex items-center px-6 border-b border-gray-200">
-        <span className="font-bold text-xl text-blue-600 flex items-center gap-2">
+        <span className="font-bold text-xl text-black flex items-center gap-2">
           <Database className="h-6 w-6" />
           LocalStack UI
         </span>
@@ -161,7 +161,7 @@ export function Sidebar() {
           </Select>
 
           <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-            <DialogTrigger className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+            <DialogTrigger className="mt-3 text-xs text-gray-600 hover:text-black font-medium flex items-center gap-1">
               <Plus className="h-3 w-3" /> Add Instance
             </DialogTrigger>
             <DialogContent>
@@ -250,7 +250,7 @@ export function Sidebar() {
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
-              Account ID
+              account ID
             </label>
             <Input 
               value={accountId} 
@@ -271,13 +271,13 @@ export function Sidebar() {
               href={link.href}
               className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                 isActive
-                  ? "bg-blue-50 text-blue-700"
+                  ? "bg-gray-100 text-black"
                   : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
               }`}
             >
               <link.icon
                 className={`mr-3 h-5 w-5 ${
-                  isActive ? "text-blue-500" : "text-gray-400"
+                  isActive ? "text-black" : "text-gray-400"
                 }`}
               />
               {link.label}

@@ -158,14 +158,14 @@ export function BucketList() {
           ) : (
             buckets.map((bucket) => (
               <TableRow key={bucket.Name}>
-                <TableCell className="font-medium text-blue-600 hover:underline">
+                <TableCell className="font-medium text-black hover:underline">
                   <Link href={`/s3/${bucket.Name}`}>{bucket.Name}</Link>
                 </TableCell>
                 <TableCell className="text-gray-500">
                   {new Date(bucket.CreationDate).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" className="text-red-500" onClick={() => handleDeleteBucket(bucket.Name)}>
+                  <Button variant="destructive" onClick={() => handleDeleteBucket(bucket.Name)}>
                     Delete
                   </Button>
                 </TableCell>
