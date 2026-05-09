@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getS3Client } from "@/lib/aws/client";
 
+export const runtime = 'edge';
+
 export async function GET(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const client = getS3Client(url, region, accountId);
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = new Uint8Array(await file.arrayBuffer());
     
     await client.send(new PutObjectCommand({
       Bucket: bucket,

@@ -19,7 +19,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatBytes } from "@/lib/utils";
-import DocViewer, { DocViewerRenderers } from "react-doc-viewer";
+import dynamic from "next/dynamic";
+
+const DocViewerWrapper = dynamic(() => import("./DocViewerWrapper"), { ssr: false });
 
 interface S3Object {
   Key: string;
@@ -267,15 +269,13 @@ export function ObjectList({ bucket }: { bucket: string }) {
           </DialogHeader>
           <div className="flex-1 overflow-hidden mt-4 relative">
             {previewData ? (
-              <DocViewer
+              <DocViewerWrapper
                 documents={[
                   {
                     uri: previewData.url,
                     fileType: previewData.fileType,
                   },
                 ]}
-                pluginRenderers={DocViewerRenderers}
-                style={{ height: "100%" }}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">

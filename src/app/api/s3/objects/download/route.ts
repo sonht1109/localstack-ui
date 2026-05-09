@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getS3Client } from "@/lib/aws/client";
 
+export const runtime = 'edge';
+
 export async function GET(request: NextRequest) {
   const url = request.headers.get('x-localstack-url') || 'http://localhost:4566';
   const region = request.headers.get('x-localstack-region') || 'ap-southeast-1';

@@ -2,6 +2,8 @@ import { MessageList } from "@/components/sqs/MessageList";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+export const runtime = 'edge';
+
 export default async function QueuePage({ params }: { params: Promise<{ queue: string }> }) {
   const resolvedParams = await params;
   return (

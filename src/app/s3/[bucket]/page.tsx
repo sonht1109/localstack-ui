@@ -2,6 +2,8 @@ import { ObjectList } from "@/components/s3/ObjectList";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+export const runtime = 'edge';
+
 export default async function BucketPage({ params }: { params: Promise<{ bucket: string }> }) {
   const resolvedParams = await params;
   return (
