@@ -55,19 +55,14 @@ export function ObjectList({ bucket }: { bucket: string }) {
     }
   };
 
+  const decodedBucket = decodeURIComponent(bucket);
+
   const fetchObjects = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/s3/objects?bucket=${encodeURIComponent(bucket)}`, {
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (!res.ok) throw new Error("Failed to fetch objects");
-      const data = await res.json();
-      setObjects(data.objects);
+      const client = getS3Client(url, region, accountId);
+      const data = await client.send(new ListObjectsV2Command({ Bucket: decodedBucket }));
+      setObjects((data.Contents as S3Object[]) || []);
       setError(null);
     } catch (err: any) {
       setError(err.message);
@@ -83,32 +78,20 @@ export function ObjectList({ bucket }: { bucket: string }) {
   const handleUpload = async () => {
     if (!fileInputRef.current?.files?.length) return;
     const file = fileInputRef.current.files[0];
-    
-    const formData = new FormData();
-    formData.append("bucket", bucket);
-    formData.append("file", file);
-    formData.append("key", file.name);
 
     try {
-      const res = await fetch("/api/s3/objects", {
-        method: "POST",
-        headers: {
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-        body: formData,
-      });
+      const client = getS3Client(url, region, accountId);
+      await client.send(new PutObjectCommand({
+        Bucket: decodedBucket,
+        Key: file.name,
+        Body: file,
+        ContentType: file.type,
+      }));
       
-      if (res.ok) {
-        setIsAddOpen(false);
-        fetchObjects();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to upload file");
-      }
-    } catch (err) {
-      alert("Error uploading file");
+      setIsAddOpen(false);
+      fetchObjects();
+    } catch (err: any) {
+      alert(err.message || "Error uploading file");
     }
   };
 
@@ -119,25 +102,18 @@ export function ObjectList({ bucket }: { bucket: string }) {
     }
     setPreviewLoading(true);
     try {
-      const res = await fetch(`/api/s3/objects/download?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`, {
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Failed to download object for preview");
-        return;
-      }
+      const client = getS3Client(url, region, accountId);
+      const data = await client.send(new GetObjectCommand({ Bucket: decodedBucket, Key: key }));
       
-      const blob = await res.blob();
+      if (!data.Body) throw new Error("No body returned");
+      
+      const bytes = await data.Body.transformToByteArray();
+      const blob = new Blob([bytes], { type: data.ContentType || "application/octet-stream" });
       const previewUrl = window.URL.createObjectURL(blob);
       setPreviewData({ url: previewUrl, key, fileType: key.split('.').pop() || '' });
       setIsPreviewOpen(true);
-    } catch (err) {
-      alert("Error downloading object for preview");
+    } catch (err: any) {
+      alert(err.message || "Error downloading object for preview");
     } finally {
       setPreviewLoading(false);
     }
@@ -145,20 +121,14 @@ export function ObjectList({ bucket }: { bucket: string }) {
 
   const handleDownloadObject = async (key: string) => {
     try {
-      const res = await fetch(`/api/s3/objects/download?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`, {
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Failed to download object");
-        return;
-      }
+      const client = getS3Client(url, region, accountId);
+      const data = await client.send(new GetObjectCommand({ Bucket: decodedBucket, Key: key }));
       
-      const blob = await res.blob();
+      if (!data.Body) throw new Error("No body returned");
+      
+      const bytes = await data.Body.transformToByteArray();
+      const blob = new Blob([bytes], { type: data.ContentType || "application/octet-stream" });
+      
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
@@ -167,30 +137,19 @@ export function ObjectList({ bucket }: { bucket: string }) {
       a.click();
       window.URL.revokeObjectURL(downloadUrl);
       document.body.removeChild(a);
-    } catch (err) {
-      alert("Error downloading object");
+    } catch (err: any) {
+      alert(err.message || "Error downloading object");
     }
   };
 
   const handleDeleteObject = async (key: string) => {
     if (!confirm(`Delete object ${key}?`)) return;
     try {
-      const res = await fetch(`/api/s3/objects?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`, {
-        method: "DELETE",
-        headers: { 
-          "x-localstack-url": url,
-          "x-localstack-region": region,
-          "x-localstack-account-id": accountId,
-        },
-      });
-      if (res.ok) {
-        fetchObjects();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to delete object");
-      }
-    } catch (err) {
-      alert("Error deleting object");
+      const client = getS3Client(url, region, accountId);
+      await client.send(new DeleteObjectCommand({ Bucket: decodedBucket, Key: key }));
+      fetchObjects();
+    } catch (err: any) {
+      alert(err.message || "Error deleting object");
     }
   };
 
@@ -209,7 +168,7 @@ export function ObjectList({ bucket }: { bucket: string }) {
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Upload File to {bucket}</DialogTitle>
+              <DialogTitle>Upload File to {decodedBucket}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <Input
