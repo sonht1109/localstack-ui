@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp } from "lucide-react";
 import { ListQueuesCommand, CreateQueueCommand, DeleteQueueCommand } from "@aws-sdk/client-sqs";
+import { Loader2, ArrowDown, ArrowUp } from "lucide-react";
 import { getSQSClient } from "@/lib/aws/client";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ export function QueueList() {
 
   const [queues, setQueues] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   
@@ -56,6 +57,7 @@ export function QueueList() {
 
   const handleCreateQueue = async () => {
     if (!newQueueName) return;
+    setCreating(true);
     try {
       const client = getSQSClient(url, region, accountId);
       await client.send(new CreateQueueCommand({ QueueName: newQueueName }));
@@ -64,6 +66,8 @@ export function QueueList() {
       fetchQueues();
     } catch (err: any) {
       alert(err.message || "Error creating queue");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -104,8 +108,18 @@ export function QueueList() {
                 placeholder="Queue name (e.g. my-queue)"
                 value={newQueueName}
                 onChange={(e) => setNewQueueName(e.target.value)}
+                disabled={creating}
               />
-              <Button onClick={handleCreateQueue} className="w-full">Create</Button>
+              <Button onClick={handleCreateQueue} className="w-full" disabled={creating}>
+                {creating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create"
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

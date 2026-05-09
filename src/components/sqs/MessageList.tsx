@@ -8,7 +8,7 @@ import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Wand2 } from "lucide-react";
+import { Wand2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -41,6 +41,7 @@ export function MessageList() {
 
   const [messages, setMessages] = useState<SQSMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -92,6 +93,7 @@ export function MessageList() {
 
   const handleSendMessage = async () => {
     if (!queueUrl || !newMessageBody) return;
+    setSending(true);
     try {
       const client = getSQSClient(url, region, accountId);
       await client.send(new SendMessageCommand({ 
@@ -101,8 +103,11 @@ export function MessageList() {
       setIsAddOpen(false);
       setNewMessageBody("");
       fetchMessages();
+      toast.success("Message sent successfully");
     } catch (err: any) {
       alert(err.message || "Error sending message");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -193,8 +198,15 @@ export function MessageList() {
                   </p>
                 )}
               </div>
-              <Button onClick={handleSendMessage} className="w-full" disabled={!!jsonError}>
-                Send
+              <Button onClick={handleSendMessage} className="w-full" disabled={!!jsonError || sending}>
+                {sending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send"
+                )}
               </Button>
             </div>
           </DialogContent>

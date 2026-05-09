@@ -7,6 +7,7 @@ import { getS3Client } from "@/lib/aws/client";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -34,6 +35,7 @@ export function BucketList() {
 
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -59,6 +61,7 @@ export function BucketList() {
 
   const handleCreateBucket = async () => {
     if (!newBucketName) return;
+    setCreating(true);
     try {
       const client = getS3Client(url, region, accountId);
       await client.send(new CreateBucketCommand({ Bucket: newBucketName }));
@@ -67,6 +70,8 @@ export function BucketList() {
       fetchBuckets();
     } catch (err: any) {
       alert(err.message || "Error creating bucket");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -103,8 +108,18 @@ export function BucketList() {
                 placeholder="Bucket name (e.g. my-app-assets)"
                 value={newBucketName}
                 onChange={(e) => setNewBucketName(e.target.value)}
+                disabled={creating}
               />
-              <Button onClick={handleCreateBucket} className="w-full">Create</Button>
+              <Button onClick={handleCreateBucket} className="w-full" disabled={creating}>
+                {creating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create"
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
