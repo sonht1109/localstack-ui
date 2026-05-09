@@ -17,8 +17,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import { formatBytes } from "@/lib/utils";
+import DocViewer, { DocViewerRenderers } from "react-doc-viewer";
 
 interface S3Object {
   Key: string;
@@ -37,6 +38,20 @@ export function ObjectList({ bucket }: { bucket: string }) {
   
   const [isAddOpen, setIsAddOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{ url: string; key: string; fileType: string } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handlePreviewOpenChange = (open: boolean) => {
+    setIsPreviewOpen(open);
+    if (!open && previewData?.url) {
+      setTimeout(() => {
+        window.URL.revokeObjectURL(previewData.url);
+        setPreviewData(null);
+      }, 300);
+    }
+  };
 
   const fetchObjects = async () => {
     setLoading(true);
@@ -92,6 +107,37 @@ export function ObjectList({ bucket }: { bucket: string }) {
       }
     } catch (err) {
       alert("Error uploading file");
+    }
+  };
+
+  const handlePreviewObject = async (key: string, size: number) => {
+    if (size >= 2 * 1024 * 1024) {
+      alert("File is too large to preview (must be < 2MB)");
+      return;
+    }
+    setPreviewLoading(true);
+    try {
+      const res = await fetch(`/api/s3/objects/download?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`, {
+        headers: { 
+          "x-localstack-url": url,
+          "x-localstack-region": region,
+          "x-localstack-account-id": accountId,
+        },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to download object for preview");
+        return;
+      }
+      
+      const blob = await res.blob();
+      const previewUrl = window.URL.createObjectURL(blob);
+      setPreviewData({ url: previewUrl, key, fileType: key.split('.').pop() || '' });
+      setIsPreviewOpen(true);
+    } catch (err) {
+      alert("Error downloading object for preview");
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -194,11 +240,14 @@ export function ObjectList({ bucket }: { bucket: string }) {
             objects.map((obj) => (
               <TableRow key={obj.Key}>
                 <TableCell className="font-medium">{obj.Key}</TableCell>
-                <TableCell className="text-gray-500">{obj.Size}</TableCell>
+                <TableCell className="text-gray-500">{formatBytes(obj.Size)}</TableCell>
                 <TableCell className="text-gray-500">
                   {new Date(obj.LastModified).toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right">
+                  <Button variant="ghost" className="text-black" onClick={() => handlePreviewObject(obj.Key, obj.Size)} disabled={previewLoading}>
+                    Preview
+                  </Button>
                   <Button variant="ghost" className="text-black" onClick={() => handleDownloadObject(obj.Key)}>
                     Download
                   </Button>
@@ -211,6 +260,31 @@ export function ObjectList({ bucket }: { bucket: string }) {
           )}
         </TableBody>
       </Table>
+      <Dialog open={isPreviewOpen} onOpenChange={handlePreviewOpenChange}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Preview: {previewData?.key}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden mt-4 relative">
+            {previewData ? (
+              <DocViewer
+                documents={[
+                  {
+                    uri: previewData.url,
+                    fileType: previewData.fileType,
+                  },
+                ]}
+                pluginRenderers={DocViewerRenderers}
+                style={{ height: "100%" }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Loading preview...
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
