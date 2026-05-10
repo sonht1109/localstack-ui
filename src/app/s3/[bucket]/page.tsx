@@ -1,11 +1,12 @@
 import { ObjectList } from "@/components/s3/ObjectList";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Suspense } from "react";
 
-export const runtime = 'edge';
+export default async function BucketPage(props: { params: Promise<{ bucket: string }> }) {
+  const params = await props.params;
+  const bucket = params.bucket;
 
-export default async function BucketPage({ params }: { params: Promise<{ bucket: string }> }) {
-  const resolvedParams = await params;
   return (
     <div className="flex-1 flex flex-col h-full">
       <header className="h-16 bg-white border-b border-gray-200 flex items-center px-8 shrink-0 gap-4">
@@ -13,11 +14,13 @@ export default async function BucketPage({ params }: { params: Promise<{ bucket:
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-xl font-semibold text-gray-800">
-          Bucket: {resolvedParams.bucket}
+          Bucket: {bucket}
         </h1>
       </header>
       <div className="flex-1 overflow-auto p-8">
-        <ObjectList bucket={resolvedParams.bucket} />
+        <Suspense fallback={<div>Loading...</div>}>
+          <ObjectList bucket={bucket} />
+        </Suspense>
       </div>
     </div>
   );

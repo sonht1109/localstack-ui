@@ -1,11 +1,12 @@
 import { MessageList } from "@/components/sqs/MessageList";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Suspense } from "react";
 
-export const runtime = 'edge';
-
-export default async function QueuePage({ params }: { params: Promise<{ queue: string }> }) {
-  const resolvedParams = await params;
+export default async function QueuePage(props: { params: Promise<{ queue: string }> }) {
+  const params = await props.params;
+  const queue = params.queue;
+  
   return (
     <div className="flex-1 flex flex-col h-full">
       <header className="h-16 bg-white border-b border-gray-200 flex items-center px-8 shrink-0 gap-4">
@@ -13,11 +14,13 @@ export default async function QueuePage({ params }: { params: Promise<{ queue: s
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-xl font-semibold text-gray-800">
-          Queue: {resolvedParams.queue}
+          Queue: {queue}
         </h1>
       </header>
       <div className="flex-1 overflow-auto p-8">
-        <MessageList />
+        <Suspense fallback={<div>Loading...</div>}>
+          <MessageList />
+        </Suspense>
       </div>
     </div>
   );
