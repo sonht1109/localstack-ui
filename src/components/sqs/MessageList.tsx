@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { ReceiveMessageCommand, SendMessageCommand, PurgeQueueCommand } from "@aws-sdk/client-sqs";
+import { ReceiveMessageCommand, SendMessageCommand, PurgeQueueCommand, DeleteMessageCommand } from "@aws-sdk/client-sqs";
 import { getSQSClient } from "@/lib/aws/client";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Wand2, Loader2 } from "lucide-react";
+import { Wand2, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -42,6 +43,9 @@ export function MessageList() {
   const [messages, setMessages] = useState<SQSMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -113,27 +117,85 @@ export function MessageList() {
 
   const handlePurgeQueue = async () => {
     if (!queueUrl || !confirm("Are you sure you want to purge all messages in this queue?")) return;
+    setLoading(true);
     try {
       const client = getSQSClient(url, region, accountId);
       await client.send(new PurgeQueueCommand({ QueueUrl: queueUrl }));
       fetchMessages();
+      toast.success("Queue purged successfully");
     } catch (err: any) {
-      alert(err.message || "Error purging queue");
+      toast.error(err.message || "Error purging queue");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleDeleteMessages = async (receiptHandles: string[]) => {
+    if (!queueUrl || receiptHandles.length === 0) return;
+    
+    const isBulk = receiptHandles.length > 1;
+    if (isBulk) setIsBulkDeleting(true);
+    else setDeleting(receiptHandles);
+
+    try {
+      const client = getSQSClient(url, region, accountId);
+      await Promise.all(
+        receiptHandles.map((handle) =>
+          client.send(new DeleteMessageCommand({ QueueUrl: queueUrl, ReceiptHandle: handle }))
+        )
+      );
+      
+      setMessages(prev => prev.filter(m => !receiptHandles.includes(m.ReceiptHandle)));
+      setSelectedMessages(prev => prev.filter(h => !receiptHandles.includes(h)));
+      toast.success(`Deleted ${receiptHandles.length} message${isBulk ? "s" : ""}`);
+    } catch (err: any) {
+      toast.error(err.message || "Error deleting messages");
+    } finally {
+      if (isBulk) setIsBulkDeleting(false);
+      else setDeleting([]);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedMessages.length === messages.length) {
+      setSelectedMessages([]);
+    } else {
+      setSelectedMessages(messages.map(m => m.ReceiptHandle));
+    }
+  };
+
+  const toggleSelect = (receiptHandle: string) => {
+    setSelectedMessages(prev =>
+      prev.includes(receiptHandle)
+        ? prev.filter(h => h !== receiptHandle)
+        : [...prev, receiptHandle]
+    );
   };
 
   if (!queueUrl) return <div>Invalid queue URL.</div>;
 
   return (
     <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center gap-4">
         <div className="flex gap-2">
           <Button onClick={fetchMessages} variant="outline" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {loading ? "Polling..." : "Receive Messages"}
           </Button>
-          <Button onClick={handlePurgeQueue} variant="destructive">
+          <Button onClick={handlePurgeQueue} variant="destructive" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Purge Queue
           </Button>
+          {selectedMessages.length > 0 && (
+            <Button 
+              onClick={() => handleDeleteMessages(selectedMessages)} 
+              variant="destructive"
+              disabled={isBulkDeleting}
+            >
+              {isBulkDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Delete Selected ({selectedMessages.length})
+            </Button>
+          )}
         </div>
         <Button onClick={() => setIsAddOpen(true)}>Send Message</Button>
         
@@ -216,25 +278,54 @@ export function MessageList() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[40px]">
+              <Checkbox 
+                checked={messages.length > 0 && selectedMessages.length === messages.length}
+                onCheckedChange={toggleSelectAll}
+                aria-label="Select all"
+              />
+            </TableHead>
             <TableHead>Message ID</TableHead>
             <TableHead>Body</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {messages.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={2} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                 No messages received.
               </TableCell>
             </TableRow>
           ) : (
             messages.map((msg) => (
               <TableRow key={msg.MessageId}>
+                <TableCell>
+                  <Checkbox 
+                    checked={selectedMessages.includes(msg.ReceiptHandle)}
+                    onCheckedChange={() => toggleSelect(msg.ReceiptHandle)}
+                    aria-label={`Select message ${msg.MessageId}`}
+                  />
+                </TableCell>
                 <TableCell className="font-medium text-xs break-all w-[250px]">
                   {msg.MessageId}
                 </TableCell>
                 <TableCell className="text-sm font-mono whitespace-pre-wrap break-all">
                   {msg.Body}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => handleDeleteMessages([msg.ReceiptHandle])}
+                    disabled={deleting.includes(msg.ReceiptHandle)}
+                  >
+                    {deleting.includes(msg.ReceiptHandle) ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Delete"
+                    )}
+                  </Button>
                 </TableCell>
               </TableRow>
             ))

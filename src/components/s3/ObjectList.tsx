@@ -4,7 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Trash2, Download } from "lucide-react";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -21,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatBytes } from "@/lib/utils";
 import { getS3Client } from "@/lib/aws/client";
-import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
 
 interface S3Object {
   Key: string;
@@ -37,7 +39,11 @@ export function ObjectList({ bucket }: { bucket: string }) {
   const [objects, setObjects] = useState<S3Object[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,31 +124,94 @@ export function ObjectList({ bucket }: { bucket: string }) {
     }
   };
 
-  const handleDeleteObject = async (key: string) => {
-    if (!confirm(`Delete object ${key}?`)) return;
+  const handleDeleteObjects = async (keys: string[]) => {
+    if (keys.length === 0) return;
+    const isBulk = keys.length > 1;
+    if (!confirm(`Are you sure you want to delete ${isBulk ? `${keys.length} objects` : `object "${keys[0]}"`}?`)) return;
+    
+    if (isBulk) setIsBulkDeleting(true);
+    else setDeleting(keys);
+
     try {
       const client = getS3Client(url, region, accountId);
-      await client.send(
-        new DeleteObjectCommand({ Bucket: decodedBucket, Key: key }),
-      );
-      fetchObjects();
+      if (isBulk) {
+        await client.send(
+          new DeleteObjectsCommand({
+            Bucket: decodedBucket,
+            Delete: {
+              Objects: keys.map(Key => ({ Key })),
+              Quiet: true,
+            },
+          })
+        );
+      } else {
+        await client.send(
+          new DeleteObjectCommand({ Bucket: decodedBucket, Key: keys[0] }),
+        );
+      }
+      
+      setObjects(prev => prev.filter(obj => !keys.includes(obj.Key)));
+      setSelectedObjects(prev => prev.filter(key => !keys.includes(key)));
+      toast.success(`Deleted ${keys.length} object${isBulk ? "s" : ""}`);
     } catch (err: any) {
-      alert(err.message || "Error deleting object");
+      toast.error(err.message || "Error deleting objects");
+    } finally {
+      if (isBulk) setIsBulkDeleting(false);
+      else setDeleting([]);
     }
   };
 
-  if (loading) return <div>Loading objects...</div>;
+  const filteredObjects = objects.filter(obj => 
+    obj.Key.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const toggleSelectAll = () => {
+    if (selectedObjects.length === filteredObjects.length) {
+      setSelectedObjects([]);
+    } else {
+      setSelectedObjects(filteredObjects.map(obj => obj.Key));
+    }
+  };
+
+  const toggleSelect = (key: string) => {
+    setSelectedObjects(prev =>
+      prev.includes(key)
+        ? prev.filter(k => k !== key)
+        : [...prev, key]
+    );
+  };
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <p className="text-sm text-gray-500 font-medium">Loading objects...</p>
+    </div>
+  );
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
     <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center gap-4">
         <Input
           type="text"
           placeholder="Search objects..."
           className="w-full max-w-sm"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Button onClick={() => setIsAddOpen(true)}>Upload File</Button>
+        <div className="flex gap-2">
+          {selectedObjects.length > 0 && (
+            <Button 
+              onClick={() => handleDeleteObjects(selectedObjects)} 
+              variant="destructive"
+              disabled={isBulkDeleting}
+            >
+              {isBulkDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Delete Selected ({selectedObjects.length})
+            </Button>
+          )}
+          <Button onClick={() => setIsAddOpen(true)}>Upload File</Button>
+        </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogContent>
             <DialogHeader>
@@ -168,46 +237,67 @@ export function ObjectList({ bucket }: { bucket: string }) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[40px]">
+              <Checkbox 
+                checked={filteredObjects.length > 0 && selectedObjects.length === filteredObjects.length}
+                onCheckedChange={toggleSelectAll}
+                aria-label="Select all"
+              />
+            </TableHead>
             <TableHead>Key</TableHead>
-            <TableHead>Size (Bytes)</TableHead>
+            <TableHead>Size</TableHead>
             <TableHead>Last Modified</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {objects.length === 0 ? (
+          {filteredObjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                No objects found in this bucket.
+              <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                No objects found.
               </TableCell>
             </TableRow>
           ) : (
-            objects.map((obj) => (
-              <TableRow key={obj.Key}>
-                <TableCell className="font-medium">{obj.Key}</TableCell>
-                <TableCell className="text-gray-500">
-                  {formatBytes(obj.Size)}
-                </TableCell>
-                <TableCell className="text-gray-500">
-                  {new Date(obj.LastModified).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    className="text-black"
-                    onClick={() => handleDownloadObject(obj.Key)}
-                  >
-                    Download
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleDeleteObject(obj.Key)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
+            filteredObjects.map((obj) => {
+              const isDeleting = deleting.includes(obj.Key);
+              return (
+                <TableRow key={obj.Key}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedObjects.includes(obj.Key)}
+                      onCheckedChange={() => toggleSelect(obj.Key)}
+                      aria-label={`Select object ${obj.Key}`}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium break-all">{obj.Key}</TableCell>
+                  <TableCell className="text-gray-500">
+                    {formatBytes(obj.Size)}
+                  </TableCell>
+                  <TableCell className="text-gray-500 whitespace-nowrap">
+                    {new Date(obj.LastModified).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-black"
+                      onClick={() => handleDownloadObject(obj.Key)}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteObjects([obj.Key])}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>
