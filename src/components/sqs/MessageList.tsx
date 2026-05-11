@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Wand2, Loader2, Trash2 } from "lucide-react";
+import { Wand2, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -178,14 +178,6 @@ export function MessageList() {
     <div className="bg-white shadow-sm rounded-lg border border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center gap-4">
         <div className="flex gap-2">
-          <Button onClick={fetchMessages} variant="outline" disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {loading ? "Polling..." : "Receive Messages"}
-          </Button>
-          <Button onClick={handlePurgeQueue} variant="destructive" disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Purge Queue
-          </Button>
           {selectedMessages.length > 0 && (
             <Button 
               onClick={() => handleDeleteMessages(selectedMessages)} 
@@ -197,7 +189,20 @@ export function MessageList() {
             </Button>
           )}
         </div>
-        <Button onClick={() => setIsAddOpen(true)}>Send Message</Button>
+        <div className="flex gap-2">
+          <Button onClick={fetchMessages} variant="outline" size="icon" title="Refresh">
+            <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
+          </Button>
+          <Button onClick={fetchMessages} variant="outline" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {loading ? "Polling..." : "Receive Messages"}
+          </Button>
+          <Button onClick={handlePurgeQueue} variant="destructive" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Purge Queue
+          </Button>
+          <Button onClick={() => setIsAddOpen(true)}>Send Message</Button>
+        </div>
         
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogContent>
@@ -243,10 +248,10 @@ export function MessageList() {
                   </Button>
                 )}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 w-full overflow-hidden">
                 <Textarea
                   className={cn(
-                    "min-h-[150px] font-mono text-xs",
+                    "min-h-[150px] font-mono text-xs w-full",
                     jsonError && "border-destructive focus-visible:ring-destructive/20"
                   )}
                   placeholder={messageMode === "json" ? '{ "key": "value" }' : "Enter message body..."}

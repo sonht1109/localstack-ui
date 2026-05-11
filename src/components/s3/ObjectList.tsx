@@ -5,7 +5,7 @@ import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Trash2, Download } from "lucide-react";
+import { Loader2, Trash2, Download, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -200,6 +200,9 @@ export function ObjectList({ bucket }: { bucket: string }) {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
         <div className="flex gap-2">
+          <Button onClick={fetchObjects} variant="outline" size="icon" title="Refresh">
+            <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
+          </Button>
           {selectedObjects.length > 0 && (
             <Button 
               onClick={() => handleDeleteObjects(selectedObjects)} 

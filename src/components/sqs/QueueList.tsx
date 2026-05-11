@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ListQueuesCommand, CreateQueueCommand, DeleteQueueCommand } from "@aws-sdk/client-sqs";
-import { Loader2, ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { Loader2, ArrowDown, ArrowUp, Trash2, RefreshCw } from "lucide-react";
 import { getSQSClient } from "@/lib/aws/client";
 import { useLocalStackStore } from "@/store/localstack";
 import { Button } from "@/components/ui/button";
@@ -142,6 +142,9 @@ export function QueueList() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
         <div className="flex gap-2">
+          <Button onClick={fetchQueues} variant="outline" size="icon" title="Refresh">
+            <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
+          </Button>
           {selectedQueues.length > 0 && (
             <Button 
               onClick={() => handleDeleteQueue(selectedQueues)} 
