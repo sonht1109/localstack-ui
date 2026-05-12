@@ -52,6 +52,17 @@ export function MessageList() {
   const [newMessageBody, setNewMessageBody] = useState("");
   const [messageMode, setMessageMode] = useState<"text" | "json">("text");
 
+  // Load last sent message for this queue
+  useEffect(() => {
+    if (queueUrl) {
+      const savedMessage = localStorage.getItem(`sqs-last-msg-${queueUrl}`);
+      const savedMode = localStorage.getItem(`sqs-last-mode-${queueUrl}`);
+      if (savedMessage) setNewMessageBody(savedMessage);
+      if (savedMode === "text" || savedMode === "json")
+        setMessageMode(savedMode);
+    }
+  }, [queueUrl, setNewMessageBody, setMessageMode]);
+
   const jsonError = useMemo(() => {
     if (messageMode !== "json" || !newMessageBody) return null;
     try {
@@ -104,8 +115,12 @@ export function MessageList() {
         QueueUrl: queueUrl,
         MessageBody: newMessageBody
       }));
+      
+      // Store last sent message
+      localStorage.setItem(`sqs-last-msg-${queueUrl}`, newMessageBody);
+      localStorage.setItem(`sqs-last-mode-${queueUrl}`, messageMode);
+
       setIsAddOpen(false);
-      setNewMessageBody("");
       fetchMessages();
       toast.success("Message sent successfully");
     } catch (err: any) {
