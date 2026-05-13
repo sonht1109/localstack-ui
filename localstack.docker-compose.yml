@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  localstack:
+    container_name: localstack
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+      - "8080:8080"
+    environment:
+      - SERVICES=${SERVICES:-s3,sqs,sns,lambda,cloudwatch,secretsmanager,apigateway}
+      - DEBUG=${DEBUG:-1}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:-}
+      - EXTRA_CORS_ALLOWED_ORIGINS=*
+      - EXTRA_CORS_ALLOWED_HEADERS=*
+      - DISABLE_CORS_CHECKS=1
+    volumes:
+      - "localstackdata:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    restart: always
+
+volumes:
+  localstackdata:

@@ -8,5 +8,3 @@ services:
       - "3007:3000"
     environment:
       - NODE_ENV=production
-    depends_on:
-      - localstack

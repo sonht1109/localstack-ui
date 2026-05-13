@@ -13,7 +13,11 @@ Right now, it supports interacting with **S3** and **SQS** straight from your br
 
 ## Getting Started
 
-Make sure you have a LocalStack instance running (usually on `localhost:4566`).
+Make sure you have a LocalStack instance running (usually on `localhost:4566`). Or you can use the provided `localstack.docker-compose.yml` to get both LocalStack up.
+
+```bash
+docker-compose -f localstack.docker-compose.yml up -d
+```
 
 ### Running with Docker (Recommended)
 
